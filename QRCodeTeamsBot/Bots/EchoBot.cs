@@ -226,8 +226,34 @@ namespace QRCodeTeamsBot.Bots
                  request.AddParameter("file", localFileName);
                  var uploadDocumentBlobResponse = client.ExecuteAsync(request);*/
 
+                if(!File.Exists(localFileName))
+                    throw new FileNotFoundException();
 
-                if (!File.Exists(localFileName))
+                FormFile QRFile;
+                using (var stream = System.IO.File.OpenRead(jsonString))
+                {
+                    QRFile = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+                }
+                QRCode qr = new QRCode();
+                qr.imageFile = QRFile;
+
+                HttpClient client = new HttpClient();
+
+                var postUrl = @"https://maliciousqrdetector.azurewebsites.net/QRBitmaps/QRAssess";
+                byte[] data;
+                using (var br = new BinaryReader(qr.imageFile.OpenReadStream()))
+                {
+                    data = br.ReadBytes((int)qr.imageFile.OpenReadStream().Length);
+                }
+                ByteArrayContent bytes = new ByteArrayContent(data);
+                MultipartFormDataContent multiContent = new MultipartFormDataContent();
+                multiContent.Add(bytes, "ImageFile", QRFile.FileName);
+                var response = await client.PostAsync(postUrl, multiContent);
+
+                var responseText2 = await response.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
+                Console.WriteLine("Response: {0}", responseText2);
+
+                /*if (!File.Exists(localFileName))
                     throw new FileNotFoundException();
                 var data = JsonConvert.SerializeObject(new UploadedFile(localFileName));
                 using (var client = new WebClient())
@@ -235,7 +261,7 @@ namespace QRCodeTeamsBot.Bots
                     client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
                     string response = await client.UploadStringTaskAsync(new Uri("https://maliciousqrdetector.azurewebsites.net/QRBitmaps/AssessQR"), "POST", data);
                     result = response;
-                }
+                }*/
 
 
             }
