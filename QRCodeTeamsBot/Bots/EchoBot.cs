@@ -269,8 +269,6 @@ namespace QRCodeTeamsBot.Bots
 
 
 
-                var responseText2 = await response.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
-                Console.WriteLine("Response: {0}", responseText2);*/
 
 
             }
