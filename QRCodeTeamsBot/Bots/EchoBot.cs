@@ -23,6 +23,7 @@ using System.Drawing;
 using QRCodeDecoderLibrary;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using ZXing;
 
 
 namespace QRCodeTeamsBot.Bots
@@ -40,6 +41,10 @@ namespace QRCodeTeamsBot.Bots
         {
             await SendWelcomeMessageAsync(turnContext, cancellationToken);
         }
+
+        private static DecodeQR decodeQR = new DecodeQR();
+
+
 
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
@@ -332,6 +337,9 @@ namespace QRCodeTeamsBot.Bots
         private static string FilePath = "";
         private static string QRName = "";
 
+
+        private static Bitmap bitmap ;
+
         // Handle attachments uploaded by users. The bot receives an <see cref="Attachment"/> in an <see cref="Activity"/>.
         // The activity has a "IList{T}" of attachments.    
         // Not all channels allow users to upload files. Some channels have restrictions
@@ -355,6 +363,7 @@ namespace QRCodeTeamsBot.Bots
                
                 // Save the attachment to the system temp directory.
                 var localFileName = Path.Combine(Path.GetTempPath(), file.Name);
+
                 FilePath = localFileName;
                 // Download the actual attachment
                 using (var webClient = new WebClient())
@@ -371,6 +380,10 @@ namespace QRCodeTeamsBot.Bots
                 }
                 QRCode qr = new QRCode();
                 qr.imageFile = QRFile;
+
+                bitmap = new Bitmap(localFileName);
+                decodeQR.getIntentOfQrCode(bitmap);
+                URL = decodeQR.Urlvalue;
 
                 //GetQRCodeDetails(QRFile);
 
@@ -403,8 +416,8 @@ namespace QRCodeTeamsBot.Bots
                     {
                         string[] col = columns[0].Split("\\");
                         string name = col[col.Length - 1] + ".png";
-
-                        if(name == file.Name)
+                        string url = columns[1];
+                        if (name == file.Name)
                         {
                             maliciousString = columns[2];
                             URL = columns[1];
@@ -412,27 +425,33 @@ namespace QRCodeTeamsBot.Bots
                             ThreatType = columns[5];
                             maliciousnesslevel = columns[4];
                         }
+                        if (URL.Contains(url))
+                        {
+                            maliciousString = columns[2];
+                            URL = columns[1];
+                            Details = columns[3];
+                            ThreatType = columns[5];
+                            maliciousnesslevel = columns[4];
+                        }
+                        
                     }
                 }
 
-               
-                replyText += $"URL: {URL}\r\n";
+                
+
+
+                replyText += $"URL: {decodeQR.Urlvalue}\r\n";
                 replyText += $"IsMalicious: {maliciousString}.\r\n" ;
                 replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
                 replyText += $"Threat Type: {ThreatType}\r\n";
                 replyText += $"Details: {Details}\r\n";
+                replyText += $"websiteLink: {decodeQR.websiteLink}\r\n";
+                replyText += $"isPaymentLink: {decodeQR.isPaymentLink.ToString()}\r\n";
+                if (decodeQR.isPaymentLink == true)
+                { replyText += $"merchantName: {decodeQR.merchantName}\r\n"; }
 
 
-
-                /*results.Add($"QR Code: \"{file.Name}\"" +
-                            $" has been received and saved to \'{localFileName}\'\r\n\r\n");
-                results.Add($"IsMalicious:\"{maliciousString}\".\r\n");
-                results.Add($"MaliciousnessLevel:\"100%\".\r\n");
-                results.Add($"Details:\"Malware threat type.\".\r\n");
-                results.Add($"ThreatType:\"Malware\".\r\n");
-                results.Add($"URL:\"slightlyoffcenter.net\".\r\n");*/
-
-            }
+    }
 
             return MessageFactory.Text(replyText);
         }
