@@ -1,0 +1,8 @@
+Path,URL,IsMalicious,Details,MaliciousnessLevel,ThreatType
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR1,slightlyoffcenter.net,Yes,Malware threat type,90,MALWARE
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR2,google.com,No,Safe,0,NO_THREAT
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR3,rupor.info,Yes,Social engineering threat type,70,SOCIAL_ENGINEERING
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR4,www.deletespyware-adware.com,Yes,Potentially harmful application threat type. this connection is not secure. Information (such as passwords or credit cards) will not be securely sent to this site and may be intercepted or seen by others.,70,POTENTIALLY_HARMFUL_APPLICATION
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR5,,Yes,Unwanted software threat type,60,UNWANTED_SOFTWARE
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR6,bezproudoff.cz,Yes,Unknown. This site does not have a certificate. Because this connection is not secure. Information (such as passwords or credit cards) will not be securely sent to this site and may be intercepted or seen by others.,50,THREAT_TYPE_UNSPECIFIED
+C:\Users\spriti\OneDrive - Microsoft\Desktop\QRCODES\QR7,docs.microsoft.com/en-us/azure/bot-service/bot-builder-deploy-az-cli?view=azure-bot-service-4.0&tabs=userassigned%2Cnewgroup%2Ccsharp,No,Safe,0,NO_THREAT

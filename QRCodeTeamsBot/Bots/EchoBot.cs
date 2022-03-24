@@ -19,6 +19,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using System.Globalization;
 using Newtonsoft.Json;
+using System.Drawing;
+using QRCodeDecoderLibrary;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+
 
 namespace QRCodeTeamsBot.Bots
 {
@@ -39,24 +44,45 @@ namespace QRCodeTeamsBot.Bots
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
             var reply = await ProcessInput(turnContext, cancellationToken);
-            await turnContext.SendActivityAsync("HI");
             // Respond to the user.
-            await turnContext.SendActivityAsync(reply, cancellationToken);
-            var card = new HeroCard
+            // await turnContext.SendActivityAsync(reply, cancellationToken);
+            if (reply.Text != "Thanks for your time.")
             {
-                Text = "Do you want to continue opening this QR Code URL/Action?",
-                Buttons = new List<CardAction>
+                var card0 = new HeroCard
+                {
+                    Title = $"QR Code(\'{QRName}\') detected and analyzed.",
+                    Subtitle = "Please find details about the QR Code below:",
+                    Text = reply.Text,
+
+                };
+                var reply0 = MessageFactory.Attachment(card0.ToAttachment());
+                await turnContext.SendActivityAsync(reply0, cancellationToken);
+
+                var card = new HeroCard
+                {
+                    Text = "Do you want to continue opening this QR Code URL/Action?",
+                    Buttons = new List<CardAction>
                 {
                     // Note that some channels require different values to be used in order to get buttons to display text.
                     // In this code the emulator is accounted for with the 'title' parameter, but in other channels you may
                     // need to provide a value for other parameters like 'text' or 'displayText'.
-                    new CardAction(ActionTypes.ImBack, title: "1. Yes", value: "1"),
-                    new CardAction(ActionTypes.ImBack, title: "2. No", value: "2"),
+                    new CardAction(ActionTypes.OpenUrl, title: "1. Yes", value: $"{URL}"),
+                    new CardAction(ActionTypes.ImBack, title: "2. No", value: "No"),
                 },
-            };
+                };
 
-            var reply2 = MessageFactory.Attachment(card.ToAttachment());
-            await turnContext.SendActivityAsync(reply2, cancellationToken);
+                var reply2 = MessageFactory.Attachment(card.ToAttachment());
+                await turnContext.SendActivityAsync(reply2, cancellationToken);
+            }
+            else
+            {
+                var card0 = new HeroCard
+                { 
+                    Text = reply.Text,
+                };
+                var reply0 = MessageFactory.Attachment(card0.ToAttachment());
+                await turnContext.SendActivityAsync(reply0, cancellationToken);
+            }
             await DisplayOptionsAsync(turnContext, cancellationToken);
         }
 
@@ -77,12 +103,18 @@ namespace QRCodeTeamsBot.Bots
         {
             foreach (var member in turnContext.Activity.MembersAdded)
             {
+
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
-                    await turnContext.SendActivityAsync(
-                        $"Welcome to Malicious QR Code Detector Bot {member.Name}." +
-                        $" This bot will inform you to whether your QR Code is malicious or not." +
-                        $" Please select an option",
+                    var card0 = new HeroCard
+                    {
+                        Title = $"Welcome to Malicious QR Code Detector Bot.",
+                        Subtitle = "This bot will inform you to whether your QR Code is malicious or not.\r\n Upload QR code and test.",
+
+                    };
+                    var reply0 = MessageFactory.Attachment(card0.ToAttachment());
+
+                    await turnContext.SendActivityAsync(reply0,
                         cancellationToken: cancellationToken);
                     await DisplayOptionsAsync(turnContext, cancellationToken);
                 }
@@ -94,6 +126,7 @@ namespace QRCodeTeamsBot.Bots
         {
             var activity = turnContext.Activity;
             IMessageActivity reply = null;
+            IMessageActivity reply2 = null;
 
             if (activity.Attachments != null && activity.Attachments.Any())
             {
@@ -102,13 +135,18 @@ namespace QRCodeTeamsBot.Bots
                 reply = HandleIncomingAttachment(activity);
                 var card = new HeroCard
                 {
-                    Text = "You can upload an QR Code to check whether its malicious or not.",
+                    Subtitle = "You can upload an QR Code to check whether its malicious or not.",
+                    Images = new List<CardImage>
+                    { 
+                        new CardImage(url: "C:\\Users\\spriti\\OneDrive - Microsoft\\Desktop\\QRCODES\\upload.webp")
+                    },
                 };
             }
             else
             {
                 // Send at attachment to the user.
-                reply = await HandleOutgoingAttachment(turnContext, activity, cancellationToken);
+                reply2 = await HandleOutgoingAttachment(turnContext, activity, cancellationToken);
+                return reply2;
             }
 
             return reply;
@@ -129,13 +167,9 @@ namespace QRCodeTeamsBot.Bots
                 reply = MessageFactory.Text("This is an attachment from a HTTP URL.");
                 reply.Attachments = new List<Attachment>() { GetInternetAttachment() };
             }
-            else if (activity.Text.StartsWith("3"))
+            else if (activity.Text.StartsWith("No"))
             {
-                reply = MessageFactory.Text("This is an uploaded attachment.");
-
-                // Get the uploaded attachment.
-                var uploadedAttachment = await GetUploadedAttachmentAsync(turnContext, activity.ServiceUrl, activity.Conversation.Id, cancellationToken);
-                reply.Attachments = new List<Attachment>() { uploadedAttachment };
+                reply = MessageFactory.Text("Thanks for your time.");
             }
             else
             {
@@ -179,55 +213,19 @@ namespace QRCodeTeamsBot.Bots
 
         public static async void  gettext(string localFileName)
         #pragma warning restore CA1822 
-        // Mark members as static
         {
             var responseText = "";
             try
             {
                 string jsonString = localFileName;
-
-                /*client.DefaultRequestHeaders
-                .Accept
-                .Add(new MediaTypeWithQualityHeaderValue("application/json")); //ACCEPT header */
-
-
-                /*Console.WriteLine("Response: {0}", jsonString);
-                FormFile QRFile;
-                using (var stream = System.IO.File.OpenRead(jsonString))
-                {
-                    QRFile = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
-                }
-                QRCode qr = new QRCode();
-                qr.Id = 1;
-                qr.Name = "a";
-                qr.imageFile = QRFile;
-
-                HttpClient client = new HttpClient();
-
-                var putUrl = @"https://maliciousqrdetector.azurewebsites.net/QRBitmaps/Search";
-                byte[] data;
-                using (var br = new BinaryReader(qr.imageFile.OpenReadStream()))
-                {
-                    data = br.ReadBytes((int)qr.imageFile.OpenReadStream().Length);
-                }
-                ByteArrayContent bytes = new ByteArrayContent(data);
-                MultipartFormDataContent multiContent = new MultipartFormDataContent();
-                multiContent.Add(bytes, "file", qr.imageFile.FileName);
-                multiContent.Add(new StringContent(qr.Id.ToString()), "Id");
-                multiContent.Add(new StringContent(qr.Name), "Name");
-                var response = await client.PutAsync(putUrl, multiContent);
-
-                var responseText2 = await response.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
-                Console.WriteLine("Response: {0}", responseText2); 
-                */
-
+                //1
                 /* var client = new RestSharp.RestClient("https://maliciousqrdetector.azurewebsites.net/QRBitmaps");
                  var request = new RestSharp.RestRequest("AssessQR", RestSharp.Method.Post) { RequestFormat = RestSharp.DataFormat.Json, AlwaysMultipartFormData = true };
                  request.AddParameter("file", localFileName);
                  var uploadDocumentBlobResponse = client.ExecuteAsync(request);*/
 
-
-                if (!File.Exists(localFileName))
+                //2
+              /*  if (!File.Exists(localFileName))
                     throw new FileNotFoundException();
                 var data = JsonConvert.SerializeObject(new UploadedFile(localFileName));
                 using (var client = new WebClient())
@@ -236,6 +234,43 @@ namespace QRCodeTeamsBot.Bots
                     string response = await client.UploadStringTaskAsync(new Uri("https://maliciousqrdetector.azurewebsites.net/QRBitmaps/AssessQR"), "POST", data);
                     result = response;
                 }
+              */
+
+                //3
+               /* if (!File.Exists(localFileName))
+                    throw new FileNotFoundException();
+
+
+
+                FormFile QRFile;
+                using (var stream = System.IO.File.OpenRead(jsonString))
+                {
+                    QRFile = new FormFile(stream, 0, stream.Length, "file", Path.GetFileName(stream.Name));
+                }
+                QRCode qr = new QRCode();
+                qr.imageFile = QRFile;
+
+
+
+                HttpClient client = new HttpClient();
+
+
+
+                var postUrl = @"https://maliciousqrdetector.azurewebsites.net/QRBitmaps/QRAssess";
+                byte[] data;
+                using (var br = new BinaryReader(qr.imageFile.OpenReadStream()))
+                {
+                    data = br.ReadBytes((int)qr.imageFile.OpenReadStream().Length);
+                }
+                ByteArrayContent bytes = new ByteArrayContent(data);
+                MultipartFormDataContent multiContent = new MultipartFormDataContent();
+                multiContent.Add(bytes, "ImageFile", QRFile.FileName);
+                var response = await client.PostAsync(postUrl, multiContent);
+
+
+
+                var responseText2 = await response.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
+                Console.WriteLine("Response: {0}", responseText2);*/
 
 
             }
@@ -245,17 +280,18 @@ namespace QRCodeTeamsBot.Bots
             }
             try
             {
-                HttpClient client = new HttpClient();
+               /* HttpClient client = new HttpClient();
                 HttpResponseMessage responseTask = await client.GetAsync("https://api.publicapis.org/entries");
                 responseText = await responseTask.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
                 if (responseTask.IsSuccessStatusCode)
                 {
                     responseText = await responseTask.Content.ReadAsStringAsync().ConfigureAwait(true); //right                                                                                                      // result = await responseTask.Content.ReadAsAsync<string>();
-                }
+                }*/
             }
             catch { }
             try
             {
+                //for google API
                 /*var service = new SafebrowsingService(new BaseClientService.Initializer
                 {
                     ApplicationName = "dotnet-client",
@@ -294,6 +330,13 @@ namespace QRCodeTeamsBot.Bots
             result = responseText;
         }
 
+        private static string URL = "URL Not Detected";
+        private static string Details = "NA";
+        private static string ThreatType = "NA";
+        private static string maliciousnesslevel = "NA";
+        private static bool IsMalicious = true;
+        private static string FilePath = "";
+        private static string QRName = "";
 
         // Handle attachments uploaded by users. The bot receives an <see cref="Attachment"/> in an <see cref="Activity"/>.
         // The activity has a "IList{T}" of attachments.    
@@ -304,44 +347,137 @@ namespace QRCodeTeamsBot.Bots
         private static IMessageActivity HandleIncomingAttachment(IMessageActivity activity)
         {
             var replyText = string.Empty;
+            HashSet<string> results = new HashSet<string>();
             foreach (var file in activity.Attachments)
             {
                 // Determine where the file is hosted.
                 var remoteFileUrl = file.ContentUrl;
-
+                 URL = "URL Not Detected";
+                 Details = "NA";
+                 ThreatType = "NA";
+                 maliciousnesslevel = "NA";
+                 IsMalicious = true;
+                QRName = file.Name;
+               
                 // Save the attachment to the system temp directory.
                 var localFileName = Path.Combine(Path.GetTempPath(), file.Name);
-
+                FilePath = localFileName;
                 // Download the actual attachment
                 using (var webClient = new WebClient())
                 {
                     webClient.DownloadFile(remoteFileUrl, localFileName);
                 }
-                var IsMalicious = true;
+                
                 var maliciousString = "";
-                gettext(localFileName);
+
+                FormFile QRFile;
+                using (var stream = System.IO.File.OpenRead(localFileName))
+                {
+                    QRFile = new FormFile(stream, 0, stream.Length, "file", Path.GetFileName(stream.Name));
+                }
+                QRCode qr = new QRCode();
+                qr.imageFile = QRFile;
+
+                //GetQRCodeDetails(QRFile);
+
+                //gettext(localFileName);
                 var a = result;
 
                 if (IsMalicious)
-                    {
-                    maliciousString = "malicious";
+                {
+                    maliciousString = "yes";
                 }
                 else
                 {
-                    maliciousString = " not malicious";
+                    maliciousString = "no";
+                }
+                string path = localFileName;
+               
+
+                string[] lines = File.ReadAllLines("C:\\Users\\spriti\\source\\repos\\QRCodeTeamsBot\\QRCodeTeamsBot\\QRData.csv");
+
+                foreach (string line in lines)
+                {
+                    string[] columns = line.Split(',');
+                    bool isAnyEmptycolumn = columns.Any(val => string.IsNullOrEmpty(val));
+
+                    if ((columns.Length >0) )
+                    {
+                        string[] col = columns[0].Split("\\");
+                        string name = col[col.Length - 1] + ".png";
+
+                        if(name == file.Name)
+                        {
+                            maliciousString = columns[2];
+                            URL = columns[1];
+                            Details = columns[3];
+                            ThreatType = columns[5];
+                            maliciousnesslevel = columns[4];
+                        }
+                    }
                 }
 
-                replyText += $"Attachment \"{file.Name}\"" +
-                             $" has been received and saved to \"{localFileName}\"\r\n";
-                replyText += $"This QR code is \"{maliciousString}\".\r\n" ;
-                replyText += $"Maliciousness level: \"100%\"\r\n";
-                replyText += $"Details: \"This QR Code accesses your personal information, location and tries to download malicious files on your local machine.\"\r\n";
-                replyText += $"TestDetails: \"{result}\"\r\n";
+               
+                replyText += $"URL: {URL}\r\n";
+                replyText += $"IsMalicious: {maliciousString}.\r\n" ;
+                replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
+                replyText += $"Threat Type: {ThreatType}\r\n";
+                replyText += $"Details: {Details}\r\n";
 
-                //   replyText += $"Details: \"{a}.\"\r\n";
+
+
+                /*results.Add($"QR Code: \"{file.Name}\"" +
+                            $" has been received and saved to \'{localFileName}\'\r\n\r\n");
+                results.Add($"IsMalicious:\"{maliciousString}\".\r\n");
+                results.Add($"MaliciousnessLevel:\"100%\".\r\n");
+                results.Add($"Details:\"Malware threat type.\".\r\n");
+                results.Add($"ThreatType:\"Malware\".\r\n");
+                results.Add($"URL:\"slightlyoffcenter.net\".\r\n");*/
+
             }
 
             return MessageFactory.Text(replyText);
+        }
+
+
+        public class QRBitmap
+        {
+            public int Id { get; set; }
+
+            public string BitmapValue { get; set; }
+            public IFormFile ImageFile { get; set; }
+        }
+
+        // POST: QRBitmaps/Search
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async static void GetQRCodeDetails(IFormFile ImageFile)
+        {
+                //To be implemented: Action on Avinash
+                //string bitmapValue = BitMapConverter(qRBitmap.ImageFile);
+                QRDecoder Decoder = new QRDecoder();
+                var memoryStream = new MemoryStream();
+                await ImageFile.CopyToAsync(memoryStream);
+                var img = System.Drawing.Image.FromStream(memoryStream);
+                byte[][] DataByteArray = Decoder.ImageDecoder((Bitmap)img);
+
+                foreach (var bytearray in DataByteArray)
+                {
+                    string BitmapValue = QRDecoder.ByteArrayToStr(bytearray);
+                    Console.WriteLine(Convert.ToString(bytearray));
+                    bool exists = true;
+                    // await _context.QRBitmaps.AnyAsync(e => e.BitmapValue == qRBitmap.BitmapValue);
+                    if (exists)
+                    {
+                        
+                    }
+                    else
+                    {
+                       
+                    }
+                }
         }
 
         // Creates an inline attachment sent from the bot to the user using a base64 string.
