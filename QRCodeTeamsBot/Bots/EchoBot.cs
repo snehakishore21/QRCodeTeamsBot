@@ -403,38 +403,45 @@ namespace QRCodeTeamsBot.Bots
 
                 string startupPath = Environment.CurrentDirectory;
 
-                string path0 = startupPath + "\\QRData.csv";
-
-                string[] lines = File.ReadAllLines(path0);
-
-                foreach (string line in lines)
+                try
                 {
-                    string[] columns = line.Split(',');
-                    bool isAnyEmptycolumn = columns.Any(val => string.IsNullOrEmpty(val));
+                    string path0 = startupPath + "\\QRData.csv";
 
-                    if ((columns.Length >0) )
+                    string[] lines = File.ReadAllLines(path0);
+
+                    foreach (string line in lines)
                     {
-                        string[] col = columns[0].Split("\\");
-                        string name = col[col.Length - 1] + ".png";
-                        string url = columns[1];
-                        if (name == file.Name)
+                        string[] columns = line.Split(',');
+                        bool isAnyEmptycolumn = columns.Any(val => string.IsNullOrEmpty(val));
+
+                        if ((columns.Length > 0))
                         {
-                            maliciousString = columns[2];
-                            URL = columns[1];
-                            Details = columns[3];
-                            ThreatType = columns[5];
-                            maliciousnesslevel = columns[4];
+                            string[] col = columns[0].Split("\\");
+                            string name = col[col.Length - 1] + ".png";
+                            string url = columns[1];
+                            if (name == file.Name)
+                            {
+                                maliciousString = columns[2];
+                                URL = columns[1];
+                                Details = columns[3];
+                                ThreatType = columns[5];
+                                maliciousnesslevel = columns[4];
+                            }
+                            if (URL.Contains(url))
+                            {
+                                maliciousString = columns[2];
+                                URL = columns[1];
+                                Details = columns[3];
+                                ThreatType = columns[5];
+                                maliciousnesslevel = columns[4];
+                            }
+
                         }
-                        if (URL.Contains(url))
-                        {
-                            maliciousString = columns[2];
-                            URL = columns[1];
-                            Details = columns[3];
-                            ThreatType = columns[5];
-                            maliciousnesslevel = columns[4];
-                        }
-                        
                     }
+                }
+                catch
+                {
+
                 }
 
                 
