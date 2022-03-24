@@ -136,10 +136,6 @@ namespace QRCodeTeamsBot.Bots
                 var card = new HeroCard
                 {
                     Subtitle = "You can upload an QR Code to check whether its malicious or not.",
-                    Images = new List<CardImage>
-                    { 
-                        new CardImage(url: "C:\\Users\\spriti\\OneDrive - Microsoft\\Desktop\\QRCODES\\upload.webp")
-                    },
                 };
             }
             else
@@ -390,9 +386,13 @@ namespace QRCodeTeamsBot.Bots
                     maliciousString = "no";
                 }
                 string path = localFileName;
-               
 
-                string[] lines = File.ReadAllLines("C:\\Users\\spriti\\source\\repos\\QRCodeTeamsBot\\QRCodeTeamsBot\\QRData.csv");
+
+                string startupPath = Environment.CurrentDirectory;
+
+                string path0 = startupPath + "\\QRData.csv";
+
+                string[] lines = File.ReadAllLines(path0);
 
                 foreach (string line in lines)
                 {
