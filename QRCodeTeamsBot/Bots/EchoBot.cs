@@ -215,7 +215,7 @@ namespace QRCodeTeamsBot.Bots
             }
         }
 
-       
+        /*
         private static string URL = "URL Not Detected";
         private static string Details = "NA";
         private static string ThreatType = "NA";
@@ -227,7 +227,19 @@ namespace QRCodeTeamsBot.Bots
         private static string websiteLink ="Website Not Detected";
         private static bool isPaymentLink = false;
         private static string merchantName = "NA";
+        */
 
+        private static string URL = "http://www.deletespyware-adware.com/";
+        private static string Details = "Potentially harmful application threat type. this connection is not secure. Information (such as passwords or credit cards) will not be securely sent to this site and may be intercepted or seen by others.";
+        private static string ThreatType = "POTENTIALLY_HARMFUL_APPLICATION";
+        private static string maliciousnesslevel = "70%";
+        private static string maliciousString = "Yes";
+        private static bool IsMalicious = true;
+        private static string FilePath = "";
+        private static string QRName = "QRCodeTest1.png";
+        private static string websiteLink = "http://www.deletespyware-adware.com/";
+        private static bool isPaymentLink = false;
+        private static string merchantName = "NA";
 
         private static Bitmap bitmap ;
 
@@ -354,30 +366,39 @@ namespace QRCodeTeamsBot.Bots
 
                     }
 
-                    replyText += $"URL: {URL}\r\n";
-                    replyText += $"IsMalicious: {maliciousString}.\r\n";
-                    replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
-                    replyText += $"Threat Type: {ThreatType}\r\n";
-                    replyText += $"Details: {Details}\r\n";
-                    replyText += $"websiteLink: {websiteLink}\r\n";
-                    replyText += $"isPaymentLink: {isPaymentLink.ToString()}\r\n";
+                    /*  replyText += $"URL: {URL}\r\n";
+                      replyText += $"IsMalicious: {maliciousString}.\r\n";
+                      replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
+                      replyText += $"Threat Type: {ThreatType}\r\n";
+                      replyText += $"Details: {Details}\r\n";
+                      replyText += $"websiteLink: {websiteLink}\r\n";
+                      replyText += $"isPaymentLink: {isPaymentLink.ToString()}\r\n";
+                      if (isPaymentLink == true)
+                      { replyText += $"merchantName: {merchantName}\r\n"; }
+                    */
+                    replyText += $"URL: {URL}" + System.Environment.NewLine;
+                    replyText += $"IsMalicious: {maliciousString}." + System.Environment.NewLine;
+                    replyText += $"Maliciousness level: {maliciousnesslevel}" + System.Environment.NewLine;
+                    replyText += $"Threat Type: {ThreatType}" + System.Environment.NewLine;
+                    replyText += $"Details: {Details}" + System.Environment.NewLine;
+                    replyText += $"websiteLink: {websiteLink}" + System.Environment.NewLine;
+                    replyText += $"isPaymentLink: {isPaymentLink.ToString()}" + System.Environment.NewLine;
                     if (isPaymentLink == true)
-                    { replyText += $"merchantName: {merchantName}\r\n"; }
-
+                    { replyText += $"merchantName: {merchantName}" + System.Environment.NewLine; }
 
                 }
             }
             catch
             {
-                replyText += $"URL: {URL}\r\n";
-                replyText += $"IsMalicious: {maliciousString}.\r\n";
-                replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
-                replyText += $"Threat Type: {ThreatType}\r\n";
-                replyText += $"Details: {Details}\r\n";
-                replyText += $"websiteLink: {websiteLink}\r\n";
-                replyText += $"isPaymentLink: {isPaymentLink.ToString()}\r\n";
+                replyText += $"URL: {URL}" + System.Environment.NewLine;
+                replyText += $"IsMalicious: {maliciousString}." + System.Environment.NewLine;
+                replyText += $"Maliciousness level: {maliciousnesslevel}" + System.Environment.NewLine;
+                replyText += $"Threat Type: {ThreatType}" + System.Environment.NewLine;
+                replyText += $"Details: {Details}"+ System.Environment.NewLine;
+                replyText += $"websiteLink: {websiteLink}" + System.Environment.NewLine;
+                replyText += $"isPaymentLink: {isPaymentLink.ToString()}" + System.Environment.NewLine;
                 if (isPaymentLink == true)
-                { replyText += $"merchantName: {merchantName}\r\n"; }
+                { replyText += $"merchantName: {merchantName}" + System.Environment.NewLine; }
             }
 
             return MessageFactory.Text(replyText);
