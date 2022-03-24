@@ -19,24 +19,35 @@ namespace QRCodeTeamsBot.Bots
         
         public void getIntentOfQrCode(Bitmap bitmapImage)
         {
-            BarcodeReader barcodeReader = new BarcodeReader();
-            Result result = barcodeReader.Decode((Bitmap)bitmapImage);
-            if (result != null)
+            try
             {
-                this.Urlvalue = result.ToString();
-                parseUrlIntent(this.Urlvalue);
+                BarcodeReader barcodeReader = new BarcodeReader();
+                Result result = barcodeReader.Decode((Bitmap)bitmapImage);
+                if (result != null)
+                {
+                    this.Urlvalue = result.ToString();
+                    parseUrlIntent(this.Urlvalue);
+                }
+            }
+            catch
+            {
+
             }
         }
         public void parseUrlIntent(string url)
         {
-            this.isPaymentLink = url.Contains("upi://");
-            if (this.isPaymentLink)
+            try
             {
-                int index = url.IndexOf("pa=") + 3;
-                int endIndex = url.IndexOf("@", index);
-                this.merchantName = url.Substring(index, endIndex);
+                this.isPaymentLink = url.Contains("upi://");
+                if (this.isPaymentLink)
+                {
+                    int index = url.IndexOf("pa=") + 3;
+                    int endIndex = url.IndexOf("@", index);
+                    this.merchantName = url.Substring(index, endIndex);
+                }
+                this.websiteLink = url;
             }
-            this.websiteLink = url;
+            catch { }
         }
     }
 }

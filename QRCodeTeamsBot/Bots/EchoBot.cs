@@ -44,8 +44,6 @@ namespace QRCodeTeamsBot.Bots
 
         private static DecodeQR decodeQR = new DecodeQR();
 
-
-
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
             var reply = await ProcessInput(turnContext, cancellationToken);
@@ -137,7 +135,14 @@ namespace QRCodeTeamsBot.Bots
             {
                 // We know the user is sending an attachment as there is at least one item
                 // in the Attachments list.
-                reply = HandleIncomingAttachment(activity);
+                try
+                {
+                    reply = HandleIncomingAttachment(activity);
+                }
+                catch
+                {
+                    reply = MessageFactory.Text("Something went wrong in processing input. Please try again.");
+                }
                 var card = new HeroCard
                 {
                     Subtitle = "You can upload an QR Code to check whether its malicious or not.",
@@ -161,12 +166,10 @@ namespace QRCodeTeamsBot.Bots
             if (activity.Text.StartsWith("1"))
             {
                 reply = MessageFactory.Text("This is an inline attachment.");
-                reply.Attachments = new List<Attachment>() { GetInlineAttachment() };
             }
             else if (activity.Text.StartsWith("2"))
             {
                 reply = MessageFactory.Text("This is an attachment from a HTTP URL.");
-                reply.Attachments = new List<Attachment>() { GetInternetAttachment() };
             }
             else if (activity.Text.StartsWith("No"))
             {
@@ -212,130 +215,18 @@ namespace QRCodeTeamsBot.Bots
             }
         }
 
-        public static async void  gettext(string localFileName)
-        #pragma warning restore CA1822 
-        {
-            var responseText = "";
-            try
-            {
-                string jsonString = localFileName;
-                //1
-                /* var client = new RestSharp.RestClient("https://maliciousqrdetector.azurewebsites.net/QRBitmaps");
-                 var request = new RestSharp.RestRequest("AssessQR", RestSharp.Method.Post) { RequestFormat = RestSharp.DataFormat.Json, AlwaysMultipartFormData = true };
-                 request.AddParameter("file", localFileName);
-                 var uploadDocumentBlobResponse = client.ExecuteAsync(request);*/
-
-                //2
-              /*  if (!File.Exists(localFileName))
-                    throw new FileNotFoundException();
-                var data = JsonConvert.SerializeObject(new UploadedFile(localFileName));
-                using (var client = new WebClient())
-                {
-                    client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
-                    string response = await client.UploadStringTaskAsync(new Uri("https://maliciousqrdetector.azurewebsites.net/QRBitmaps/AssessQR"), "POST", data);
-                    result = response;
-                }
-              */
-
-                //3
-               /* if (!File.Exists(localFileName))
-                    throw new FileNotFoundException();
-
-
-
-                FormFile QRFile;
-                using (var stream = System.IO.File.OpenRead(jsonString))
-                {
-                    QRFile = new FormFile(stream, 0, stream.Length, "file", Path.GetFileName(stream.Name));
-                }
-                QRCode qr = new QRCode();
-                qr.imageFile = QRFile;
-
-
-
-                HttpClient client = new HttpClient();
-
-
-
-                var postUrl = @"https://maliciousqrdetector.azurewebsites.net/QRBitmaps/QRAssess";
-                byte[] data;
-                using (var br = new BinaryReader(qr.imageFile.OpenReadStream()))
-                {
-                    data = br.ReadBytes((int)qr.imageFile.OpenReadStream().Length);
-                }
-                ByteArrayContent bytes = new ByteArrayContent(data);
-                MultipartFormDataContent multiContent = new MultipartFormDataContent();
-                multiContent.Add(bytes, "ImageFile", QRFile.FileName);
-                var response = await client.PostAsync(postUrl, multiContent);
-
-
-
-
-
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
-            try
-            {
-               /* HttpClient client = new HttpClient();
-                HttpResponseMessage responseTask = await client.GetAsync("https://api.publicapis.org/entries");
-                responseText = await responseTask.Content.ReadAsStringAsync().ConfigureAwait(true); //right!
-                if (responseTask.IsSuccessStatusCode)
-                {
-                    responseText = await responseTask.Content.ReadAsStringAsync().ConfigureAwait(true); //right                                                                                                      // result = await responseTask.Content.ReadAsAsync<string>();
-                }*/
-            }
-            catch { }
-            try
-            {
-                //for google API
-                /*var service = new SafebrowsingService(new BaseClientService.Initializer
-                {
-                    ApplicationName = "dotnet-client",
-                    ApiKey = "API-KEY"
-                });
-
-                var request = service.ThreatMatches.Find(new FindThreatMatchesRequest()
-                {
-                    Client = new ClientInfo
-                    {
-                        ClientId = "Dotnet-client",
-                        ClientVersion = "1.5.2"
-                    },
-                    ThreatInfo = new ThreatInfo()
-                    {
-                        ThreatTypes = new List<string> { "Malware" },
-                        PlatformTypes = new List<string> { "Windows" },
-                        ThreatEntryTypes = new List<string> { "URL" },
-                        ThreatEntries = new List<ThreatEntry>
-                {
-                    new ThreatEntry
-                    {
-                        Url = "google.com"
-                    }
-                }
-                    }
-                });
-
-                var response = await request.ExecuteAsync();
-                */
-
-                
-            }
-            catch { }
-
-            result = responseText;
-        }
-
+       
         private static string URL = "URL Not Detected";
         private static string Details = "NA";
         private static string ThreatType = "NA";
         private static string maliciousnesslevel = "NA";
+        private static string maliciousString = "NA";
         private static bool IsMalicious = true;
         private static string FilePath = "";
         private static string QRName = "";
+        private static string websiteLink ="Website Not Detected";
+        private static bool isPaymentLink = false;
+        private static string merchantName = "NA";
 
 
         private static Bitmap bitmap ;
@@ -350,225 +241,146 @@ namespace QRCodeTeamsBot.Bots
         {
             var replyText = string.Empty;
             HashSet<string> results = new HashSet<string>();
-            foreach (var file in activity.Attachments)
+            try
             {
-                // Determine where the file is hosted.
-                var remoteFileUrl = file.ContentUrl;
-                 URL = "URL Not Detected";
-                 Details = "NA";
-                 ThreatType = "NA";
-                 maliciousnesslevel = "NA";
-                 IsMalicious = true;
-                QRName = file.Name;
-               
-                // Save the attachment to the system temp directory.
-                var localFileName = Path.Combine(Path.GetTempPath(), file.Name);
-
-                FilePath = localFileName;
-                // Download the actual attachment
-                using (var webClient = new WebClient())
+                foreach (var file in activity.Attachments)
                 {
-                    webClient.DownloadFile(remoteFileUrl, localFileName);
-                }
-                
-                var maliciousString = "";
+                    // Determine where the file is hosted.
+                    var remoteFileUrl = file.ContentUrl;
+                    URL = "URL Not Detected";
+                    Details = "NA";
+                    ThreatType = "NA";
+                    maliciousnesslevel = "NA";
+                    IsMalicious = true;
+                    QRName = file.Name;
 
-                FormFile QRFile;
-                using (var stream = System.IO.File.OpenRead(localFileName))
-                {
-                    QRFile = new FormFile(stream, 0, stream.Length, "file", Path.GetFileName(stream.Name));
-                }
-                QRCode qr = new QRCode();
-                qr.imageFile = QRFile;
+                    // Save the attachment to the system temp directory.
+                    var localFileName = Path.Combine(Path.GetTempPath(), file.Name);
+                    maliciousString = "";
 
-                bitmap = new Bitmap(localFileName);
-                decodeQR.getIntentOfQrCode(bitmap);
-                URL = decodeQR.Urlvalue;
-
-                //GetQRCodeDetails(QRFile);
-
-                //gettext(localFileName);
-                var a = result;
-
-                if (IsMalicious)
-                {
-                    maliciousString = "yes";
-                }
-                else
-                {
-                    maliciousString = "no";
-                }
-                string path = localFileName;
-
-
-                string startupPath = Environment.CurrentDirectory;
-
-                try
-                {
-                    string path0 = startupPath + "\\QRData.csv";
-
-                    string[] lines = File.ReadAllLines(path0);
-
-                    foreach (string line in lines)
-                    {
-                        string[] columns = line.Split(',');
-                        bool isAnyEmptycolumn = columns.Any(val => string.IsNullOrEmpty(val));
-
-                        if ((columns.Length > 0))
+                    FilePath = localFileName;
+                    try
+                    { // Download the actual attachment
+                        using (var webClient = new WebClient())
                         {
-                            string[] col = columns[0].Split("\\");
-                            string name = col[col.Length - 1] + ".png";
-                            string url = columns[1];
-                            if (name == file.Name)
-                            {
-                                maliciousString = columns[2];
-                                URL = columns[1];
-                                Details = columns[3];
-                                ThreatType = columns[5];
-                                maliciousnesslevel = columns[4];
-                            }
-                            if (URL.Contains(url))
-                            {
-                                maliciousString = columns[2];
-                                URL = columns[1];
-                                Details = columns[3];
-                                ThreatType = columns[5];
-                                maliciousnesslevel = columns[4];
-                            }
+                            webClient.DownloadFile(remoteFileUrl, localFileName);
+                        }
+
+                        FormFile QRFile;
+                        using (var stream = System.IO.File.OpenRead(localFileName))
+                        {
+                            QRFile = new FormFile(stream, 0, stream.Length, "file", Path.GetFileName(stream.Name));
+                        }
+                        QRCode qr = new QRCode();
+                        qr.imageFile = QRFile;
+                        try
+                        {
+                            bitmap = new Bitmap(localFileName);
+                            decodeQR.getIntentOfQrCode(bitmap);
+                            URL = decodeQR.Urlvalue;
+                            websiteLink = decodeQR.websiteLink;
+                            isPaymentLink = decodeQR.isPaymentLink;
+                            merchantName = decodeQR.merchantName;
+                        }
+                        catch
+                        {
 
                         }
                     }
-                }
-                catch
-                {
-
-                }
-
-                
-
-
-                replyText += $"URL: {decodeQR.Urlvalue}\r\n";
-                replyText += $"IsMalicious: {maliciousString}.\r\n" ;
-                replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
-                replyText += $"Threat Type: {ThreatType}\r\n";
-                replyText += $"Details: {Details}\r\n";
-                replyText += $"websiteLink: {decodeQR.websiteLink}\r\n";
-                replyText += $"isPaymentLink: {decodeQR.isPaymentLink.ToString()}\r\n";
-                if (decodeQR.isPaymentLink == true)
-                { replyText += $"merchantName: {decodeQR.merchantName}\r\n"; }
-
-
-    }
-
-            return MessageFactory.Text(replyText);
-        }
-
-
-        public class QRBitmap
-        {
-            public int Id { get; set; }
-
-            public string BitmapValue { get; set; }
-            public IFormFile ImageFile { get; set; }
-        }
-
-        // POST: QRBitmaps/Search
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async static void GetQRCodeDetails(IFormFile ImageFile)
-        {
-                //To be implemented: Action on Avinash
-                //string bitmapValue = BitMapConverter(qRBitmap.ImageFile);
-                QRDecoder Decoder = new QRDecoder();
-                var memoryStream = new MemoryStream();
-                await ImageFile.CopyToAsync(memoryStream);
-                var img = System.Drawing.Image.FromStream(memoryStream);
-                byte[][] DataByteArray = Decoder.ImageDecoder((Bitmap)img);
-
-                foreach (var bytearray in DataByteArray)
-                {
-                    string BitmapValue = QRDecoder.ByteArrayToStr(bytearray);
-                    Console.WriteLine(Convert.ToString(bytearray));
-                    bool exists = true;
-                    // await _context.QRBitmaps.AnyAsync(e => e.BitmapValue == qRBitmap.BitmapValue);
-                    if (exists)
+                    catch
                     {
-                        
+
+                    }
+
+
+                    //GetQRCodeDetails(QRFile);
+
+                    //gettext(localFileName);
+                    var a = result;
+
+                    if (IsMalicious)
+                    {
+                        maliciousString = "yes";
                     }
                     else
                     {
-                       
+                        maliciousString = "no";
                     }
+                    string path = localFileName;
+
+
+
+
+                    try
+                    {
+                        string startupPath = Environment.CurrentDirectory;
+
+                        string path0 = startupPath + "\\QRData.csv";
+
+                        string[] lines = File.ReadAllLines(path0);
+
+                        foreach (string line in lines)
+                        {
+                            string[] columns = line.Split(',');
+                            bool isAnyEmptycolumn = columns.Any(val => string.IsNullOrEmpty(val));
+
+                            if ((columns.Length > 0))
+                            {
+                                string[] col = columns[0].Split("\\");
+                                string name = col[col.Length - 1] + ".png";
+                                string url = columns[1];
+                                if (name == file.Name)
+                                {
+                                    maliciousString = columns[2];
+                                    //URL = columns[1];
+                                    Details = columns[3];
+                                    ThreatType = columns[5];
+                                    maliciousnesslevel = columns[4];
+                                }
+                                if (URL.Contains(url))
+                                {
+                                    maliciousString = columns[2];
+                                    //URL = columns[1];
+                                    Details = columns[3];
+                                    ThreatType = columns[5];
+                                    maliciousnesslevel = columns[4];
+                                }
+
+                            }
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+
+                    replyText += $"URL: {URL}\r\n";
+                    replyText += $"IsMalicious: {maliciousString}.\r\n";
+                    replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
+                    replyText += $"Threat Type: {ThreatType}\r\n";
+                    replyText += $"Details: {Details}\r\n";
+                    replyText += $"websiteLink: {websiteLink}\r\n";
+                    replyText += $"isPaymentLink: {isPaymentLink.ToString()}\r\n";
+                    if (isPaymentLink == true)
+                    { replyText += $"merchantName: {merchantName}\r\n"; }
+
+
                 }
-        }
-
-        // Creates an inline attachment sent from the bot to the user using a base64 string.
-        // Using a base64 string to send an attachment will not work on all channels.
-        // Additionally, some channels will only allow certain file types to be sent this way.
-        // For example a .png file may work but a .pdf file may not on some channels.
-        // Please consult the channel documentation for specifics.
-        private static Attachment GetInlineAttachment()
-        {
-            var imagePath = Path.Combine(Environment.CurrentDirectory, @"Resources", "architecture-resize.png");
-            var imageData = Convert.ToBase64String(File.ReadAllBytes(imagePath));
-
-            return new Attachment
+            }
+            catch
             {
-                Name = @"Resources\architecture-resize.png",
-                ContentType = "image/png",
-                ContentUrl = $"data:image/png;base64,{imageData}",
-            };
-        }
-
-        // Creates an "Attachment" to be sent from the bot to the user from an uploaded file.
-        private static async Task<Attachment> GetUploadedAttachmentAsync(ITurnContext turnContext, string serviceUrl, string conversationId, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(serviceUrl))
-            {
-                throw new ArgumentNullException(nameof(serviceUrl));
+                replyText += $"URL: {URL}\r\n";
+                replyText += $"IsMalicious: {maliciousString}.\r\n";
+                replyText += $"Maliciousness level: {maliciousnesslevel}\r\n";
+                replyText += $"Threat Type: {ThreatType}\r\n";
+                replyText += $"Details: {Details}\r\n";
+                replyText += $"websiteLink: {websiteLink}\r\n";
+                replyText += $"isPaymentLink: {isPaymentLink.ToString()}\r\n";
+                if (isPaymentLink == true)
+                { replyText += $"merchantName: {merchantName}\r\n"; }
             }
 
-            if (string.IsNullOrWhiteSpace(conversationId))
-            {
-                throw new ArgumentNullException(nameof(conversationId));
-            }
-
-            var imagePath = Path.Combine(Environment.CurrentDirectory, @"Resources", "architecture-resize.png");
-
-            var connector = turnContext.TurnState.Get<IConnectorClient>() as ConnectorClient;
-            var attachments = new Attachments(connector);
-            var response = await attachments.Client.Conversations.UploadAttachmentAsync(
-                conversationId,
-                new AttachmentData
-                {
-                    Name = @"Resources\architecture-resize.png",
-                    OriginalBase64 = File.ReadAllBytes(imagePath),
-                    Type = "image/png",
-                },
-                cancellationToken);
-
-            var attachmentUri = attachments.GetAttachmentUri(response.Id);
-
-            return new Attachment
-            {
-                Name = @"Resources\architecture-resize.png",
-                ContentType = "image/png",
-                ContentUrl = attachmentUri,
-            };
-        }
-
-        // Creates an <see cref="Attachment"/> to be sent from the bot to the user from a HTTP URL.
-        private static Attachment GetInternetAttachment()
-        {
-            // ContentUrl must be HTTPS.
-            return new Attachment
-            {
-                Name = @"Resources\architecture-resize.png",
-                ContentType = "image/png",
-                ContentUrl = "https://docs.microsoft.com/en-us/bot-framework/media/how-it-works/architecture-resize.png",
-            };
+            return MessageFactory.Text(replyText);
         }
     }
 }
